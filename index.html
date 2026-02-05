@@ -287,6 +287,174 @@
         // 要移除的图片编号列表
         const removeIds = [2,13,15,26,31,32,38,53,69];
 
+        // 预加载所有图片，确保顺序
+        const imagePromises = [];
+        for (let i = 1; i <= totalImages; i++) {
+            if (removeIds.includes(i)) continue;
+
+            const promise = new Promise((resolve) => {
+                const img = new Image();
+                img.src = `${i}.png`;
+                img.onload = () => resolve({ id: i, success: true });
+                img.onerror = () => resolve({ id: i, success: false });
+            });
+            imagePromises.push(promise);
+        }
+
+        // 等待所有图片检查完成，然后按顺序添加
+        Promise.all(imagePromises).then((results) => {
+            // 按图片ID排序，确保顺序
+            results.sort((a, b) => a.id - b.id);
+
+            results.forEach((result) => {
+                if (!result.success) return;
+
+                const i = result.id;
+                const card = document.createElement('div');
+                card.className = 'image-card';
+
+                const img = document.createElement('img');
+                img.src = `${i}.png`;
+                img.alt = `图片 ${i}`;
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'image-name';
+                nameEl.textContent = `${i}.png`;
+
+                card.addEventListener('click', () => {
+                    fullscreenImg.src = img.src;
+                    overlay.classList.add('active');
+                });
+
+                card.appendChild(img);
+                card.appendChild(nameEl);
+                gallery.appendChild(card);
+            });
+        });
+
+        // 关闭全屏
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.remove('active');
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+
+        // 长按保存（移动端）
+        document.addEventListener('DOMContentLoaded', () => {
+            const allImgs = document.querySelectorAll('.image-card img');
+            allImgs.forEach(img => {
+                img.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (navigator.share) {
+                        // 优先使用系统分享（包含保存选项）
+                        fetch(img.src)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                const file = new File([blob], img.alt + '.png', { type: 'image/png' });
+                                navigator.share({
+                                    title: '保存图片',
+                                    files: [file]
+                                });
+                            })
+                            .catch(() => alert('保存失败，请尝试长按图片选择“保存到相册”'));
+                    } else {
+                        alert('长按图片，在弹出菜单中选择“保存图片”');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+        /* 固定为4列网格 */
+        .gallery-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .image-card {
+            background-color: #fff;
+            border-radius: 6px;
+            padding: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+
+        .image-name {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 全屏查看遮罩 */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .fullscreen-overlay.active {
+            display: flex;
+        }
+
+        .fullscreen-img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部标题 + 说明文字 -->
+    <div class="header">Licn收集（图片来自于网络）</div>
+    <div class="tips">加载失败的是没有上传图不用管</div>
+
+    <div class="gallery-container" id="gallery"></div>
+
+    <!-- 全屏查看层 -->
+    <div class="fullscreen-overlay" id="overlay">
+        <span class="close-btn" id="closeBtn">&times;</span>
+        <img src="" alt="" class="fullscreen-img" id="fullscreenImg">
+    </div>
+
+    <script>
+        const gallery = document.getElementById('gallery');
+        const overlay = document.getElementById('overlay');
+        const fullscreenImg = document.getElementById('fullscreenImg');
+        const closeBtn = document.getElementById('closeBtn');
+        const totalImages = 500;
+        // 要移除的图片编号列表
+        const removeIds = [2,13,15,26,31,32,38,53,69];
+
         // 生成图片网格
         for (let i = 1; i <= totalImages; i++) {
             // 跳过需要移除的编号，不生成显示框
