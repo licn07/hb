@@ -108,6 +108,287 @@
     <div class="fullscreen-overlay" id="overlay">
         <span class="close-btn" id="closeBtn">&times;</span>
         <img src="" alt="" class="fullscreen-img" id="fullscreenImg">
+   你当前的代码中，图片卡片是根据 `existingImageIds` 数组生成的。要删除 232 到 321 的卡片，只需在遍历数组时添加一个判断条件，跳过这个区间的编号即可。
+
+以下是修改后的代码：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiCN图库</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 10px;
+        }
+
+        /* 顶部标题栏 */
+        .header {
+            text-align: center;
+            padding: 15px 0 5px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        /* 说明文字样式 */
+        .tips {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        /* 固定为4列网格 */
+        .gallery-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .image-card {
+            background-color: #fff;
+            border-radius: 6px;
+            padding: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+
+        .image-name {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 全屏查看遮罩 */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .fullscreen-overlay.active {
+            display: flex;
+        }
+
+        .fullscreen-img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部标题 + 说明文字 -->
+    <div class="header">Licn收集（图片来自于网络）</div>
+    <div class="tips">加载失败的是没有上传图不用管</div>
+
+    <div class="gallery-container" id="gallery"></div>
+
+    <!-- 全屏查看层 -->
+    <div class="fullscreen-overlay" id="overlay">
+        <span class="close-btn" id="closeBtn">&times;</span>
+        <img src="" alt="" class="fullscreen-img" id="fullscreenImg">
+    </div>
+
+    <script>
+        const gallery = document.getElementById('gallery');
+        const overlay = document.getElementById('overlay');
+        const fullscreenImg = document.getElementById('fullscreenImg');
+        const closeBtn = document.getElementById('closeBtn');
+
+        // 在这里列出你所有实际存在的图片编号
+        // 请根据你GitHub仓库里的文件列表，把所有编号都填进去
+        const existingImageIds = [
+            1, 3, 30, 31, 32, 33,
+            230, 231,
+            322, 323, 324, 325, 326, 327, 328, 329,
+            330, 331, 332, 333, 334, 335, 336
+            // ... 继续添加其他所有存在的图片编号
+        ];
+
+        // 要移除的图片编号列表（如果有的话）
+        const removeIds = [2,13,15,26,31,32,38,53,69];
+
+        // 生成图片网格
+        existingImageIds.forEach(i => {
+            // 跳过需要移除的编号，不生成显示框
+            if (removeIds.includes(i)) return;
+            // 新增：跳过 232 到 321 区间的所有编号
+            if (i >= 232 && i <= 321) return;
+            
+            const card = document.createElement('div');
+            card.className = 'image-card';
+
+            const img = document.createElement('img');
+            img.src = `${i}.png`;
+            img.alt = `图片 ${i}`;
+            img.onerror = () => {
+                img.style.display = 'none';
+                nameEl.textContent = `${i}.png (加载失败)`;
+            };
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'image-name';
+            nameEl.textContent = `${i}.png`;
+
+            // 点击图片放大
+            card.addEventListener('click', () => {
+                fullscreenImg.src = img.src;
+                overlay.classList.add('active');
+            });
+
+            card.appendChild(img);
+            card.appendChild(nameEl);
+            gallery.appendChild(card);
+        });
+
+        // 关闭全屏
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.remove('active');
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+
+        // 长按保存（移动端）
+        document.addEventListener('DOMContentLoaded', () => {
+            const allImgs = document.querySelectorAll('.image-card img');
+            allImgs.forEach(img => {
+                img.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (navigator.share) {
+                        // 优先使用系统分享（包含保存选项）
+                        fetch(img.src)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                const file = new File([blob], img.alt + '.png', { type: 'image/png' });
+                                navigator.share({
+                                    title: '保存图片',
+                                    files: [file]
+                                });
+                            })
+                            .catch(() => alert('保存失败，请尝试长按图片选择“保存到相册”'));
+                    } else {
+                        alert('长按图片，在弹出菜单中选择“保存图片”');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+        /* 固定为4列网格 */
+        .gallery-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .image-card {
+            background-color: #fff;
+            border-radius: 6px;
+            padding: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+
+        .image-name {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 全屏查看遮罩 */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .fullscreen-overlay.active {
+            display: flex;
+        }
+
+        .fullscreen-img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部标题 + 说明文字 -->
+    <div class="header">Licn收集（图片来自于网络）</div>
+    <div class="tips">加载失败的是没有上传图不用管</div>
+
+    <div class="gallery-container" id="gallery"></div>
+
+    <!-- 全屏查看层 -->
+    <div class="fullscreen-overlay" id="overlay">
+        <span class="close-btn" id="closeBtn">&times;</span>
+        <img src="" alt="" class="fullscreen-img" id="fullscreenImg">
     </div>
 
     <script>
