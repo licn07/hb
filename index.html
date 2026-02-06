@@ -15,7 +15,6 @@
             background-color: #f5f5f5;
             padding: 10px;
         }
-        /* 新增标题样式 */
         .header {
             text-align: center;
             margin-bottom: 20px;
@@ -30,7 +29,6 @@
             font-size: 14px;
             color: #666;
         }
-        /* 固定为4列网格 */
         .gallery-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -44,7 +42,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             text-align: center;
             cursor: pointer;
-            display: none; /* 默认隐藏，加载成功后显示 */
+            display: none;
         }
         .image-card.loaded {
             display: block;
@@ -59,7 +57,6 @@
             font-size: 12px;
             color: #666;
         }
-        /* 全屏查看遮罩 */
         .fullscreen-overlay {
             position: fixed;
             top: 0;
@@ -88,7 +85,6 @@
             font-size: 30px;
             cursor: pointer;
         }
-        /* 新增弹窗样式 */
         .loading-popup {
             position: fixed;
             top: 0;
@@ -110,13 +106,11 @@
     </style>
 </head>
 <body>
-    <!-- 新增弹窗 -->
     <div class="loading-popup" id="loadingPopup">
         <div>请等待5秒加载图片比较好感谢配合</div>
         <div style="margin-top: 10px; font-size: 16px;">该弹窗5秒后自动消失，稍等</div>
     </div>
 
-    <!-- 新增标题区域 -->
     <div class="header">
         <h1>LiCN收集图片素材来自于网络</h1>
         <p>都是测试过的</p>
@@ -124,7 +118,6 @@
 
     <div class="gallery-container" id="gallery"></div>
 
-    <!-- 全屏查看遮罩 -->
     <div class="fullscreen-overlay" id="fullscreenOverlay">
         <span class="close-btn" id="closeBtn">&times;</span>
         <img class="fullscreen-img" id="fullscreenImg" src="" alt="全屏查看">
@@ -137,15 +130,21 @@
             const fullscreenOverlay = document.getElementById('fullscreenOverlay');
             const fullscreenImg = document.getElementById('fullscreenImg');
             const closeBtn = document.getElementById('closeBtn');
-            const totalImages = 500; // 图片总数，可根据需要调整
+            const totalImages = 500;
+            let currentImageIndex = 1;
 
             // 5秒后隐藏弹窗
             setTimeout(() => {
                 loadingPopup.style.display = 'none';
+                // 弹窗消失后开始按顺序加载图片
+                loadNextImage();
             }, 5000);
 
-            for (let i = 1; i <= totalImages; i++) {
-                const imgName = `${i}.png`;
+            // 按顺序加载下一张图片
+            function loadNextImage() {
+                if (currentImageIndex > totalImages) return;
+
+                const imgName = `${currentImageIndex}.png`;
                 const card = document.createElement('div');
                 card.className = 'image-card';
 
@@ -157,15 +156,18 @@
                 nameLabel.className = 'image-name';
                 nameLabel.textContent = imgName;
 
-                // 图片加载成功后显示卡片
+                // 图片加载成功后显示卡片，并加载下一张
                 img.onload = () => {
                     card.classList.add('loaded');
+                    currentImageIndex++;
+                    // 延迟50ms加载下一张，避免请求过于密集
+                    setTimeout(loadNextImage, 50);
                 };
 
-                // 图片加载失败则保持隐藏（不添加loaded类）
+                // 图片加载失败，直接尝试加载下一张
                 img.onerror = () => {
-                    // 可选：在控制台输出加载失败的图片
-                    // console.error(`图片加载失败: ${imgName}`);
+                    currentImageIndex++;
+                    setTimeout(loadNextImage, 50);
                 };
 
                 // 点击卡片触发全屏查看
@@ -184,7 +186,6 @@
                 fullscreenOverlay.classList.remove('active');
             });
 
-            // 点击遮罩背景关闭全屏查看
             fullscreenOverlay.addEventListener('click', (e) => {
                 if (e.target === fullscreenOverlay) {
                     fullscreenOverlay.classList.remove('active');
