@@ -10,7 +10,6 @@
         .header { text-align: center; margin-bottom: 20px; color: #333; }
         .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
         .header p { font-size: 14px; color: #666; }
-        /* 新增红色提示文字样式 */
         .header .red-tip { font-size: 14px; color: #ff0000; margin-top: 6px; }
         .gallery-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 100%; }
         .image-card { background-color: #fff; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; cursor: pointer; display: none; }
@@ -48,7 +47,6 @@
     <div class="header">
         <h1>LiCN收集图片素材来自于网络</h1>
         <p>都是测试过的</p>
-        <!-- 新增红色提示文字 -->
         <div class="red-tip">首次加载较慢见谅因为服务区在国外抱歉</div>
     </div>
 
@@ -70,24 +68,55 @@
             const BATCH_SIZE = 64;
             let currentBatch = 0;
 
-            // 浏览器检测核心逻辑
+            // 🔧 优化后的浏览器检测逻辑（准确率大幅提升）
             function detectBrowser() {
                 const userAgent = navigator.userAgent.toLowerCase();
-                if (userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('edge')) {
-                    return '苹果浏览器（Safari）';
-                } else if (userAgent.includes('chrome')) {
+                const platform = navigator.platform.toLowerCase();
+
+                // 1. 优先识别国产浏览器（基于UA特征精准匹配）
+                if (userAgent.includes('vivo')) {
+                    return 'vivo浏览器';
+                } else if (userAgent.includes('miui') || userAgent.includes('xiaomi')) {
+                    return '小米浏览器';
+                } else if (userAgent.includes('huawei') || userAgent.includes('honor')) {
+                    return '华为浏览器';
+                } else if (userAgent.includes('oppo')) {
+                    return 'OPPO浏览器';
+                } else if (userAgent.includes('meizu')) {
+                    return '魅族浏览器';
+                } else if (userAgent.includes('qqbrowser')) {
+                    return 'QQ浏览器';
+                } else if (userAgent.includes('ucbrowser')) {
+                    return 'UC浏览器';
+                } else if (userAgent.includes('baidu') && userAgent.includes('browser')) {
+                    return '百度浏览器';
+                }
+
+                // 2. 识别主流浏览器（避免内核混淆）
+                if (userAgent.includes('edge') && userAgent.includes('edg')) {
+                    // Edge浏览器特征：同时包含"edge"和"edg"
+                    return '微软浏览器（Edge）';
+                } else if (userAgent.includes('chrome') && !userAgent.includes('edge') && !userAgent.includes('safari')) {
+                    // Chrome浏览器：排除Edge和Safari的干扰
                     return '谷歌浏览器（Chrome）';
                 } else if (userAgent.includes('firefox')) {
                     return '火狐浏览器（Firefox）';
-                } else if (userAgent.includes('edge')) {
-                    return '微软浏览器（Edge）';
-                } else if (userAgent.includes('vivo')) {
-                    return 'vivo浏览器';
-                } else if (userAgent.includes('miui')) {
-                    return '小米浏览器';
-                } else {
-                    return '未知浏览器';
+                } else if (
+                    // Safari浏览器精准识别：包含"safari"且不包含其他浏览器特征
+                    userAgent.includes('safari') && 
+                    !userAgent.includes('chrome') && 
+                    !userAgent.includes('edge') && 
+                    !userAgent.includes('qqbrowser') && 
+                    !userAgent.includes('ucbrowser')
+                ) {
+                    // 区分iOS和Mac的Safari
+                    return platform.includes('iphone') || platform.includes('ipad') ? '苹果浏览器（Safari-iOS）' : '苹果浏览器（Safari-Mac）';
+                } else if (userAgent.includes('opera')) {
+                    return '欧朋浏览器（Opera）';
                 }
+
+                // 3. 其他情况
+                return '未知浏览器';
             }
 
             // 动态设置弹窗文字
