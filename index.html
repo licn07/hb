@@ -3,45 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片画廊</title>
+    <title>LiCN图片收集</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f5f5f5; padding: 10px; }
-        .header { text-align: center; margin-bottom: 20px; color: #333; }
-        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-        .header p { font-size: 14px; color: #666; }
-        .header .red-tip { font-size: 14px; color: #ff0000; margin-top: 6px; }
-        .gallery-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 100%; }
-        .image-card { background-color: #fff; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; cursor: pointer; display: none; }
-        .image-card.loaded { display: block; }
-        .image-card img { width: 100%; height: auto; border-radius: 4px; margin-bottom: 4px; }
-        .image-name { font-size: 12px; color: #666; }
-        .fullscreen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .fullscreen-overlay.active { display: flex; }
-        .fullscreen-img { max-width: 90%; max-height: 90%; object-fit: contain; }
-        .close-btn { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
-        .loading-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0,0,0,0.8);
-            padding: 20px 35px;
-            border-radius: 10px;
-            z-index: 10000;
-            color: white;
-            font-size: 16px;
+        body { background: #f5f5f5; padding: 10px; font-family: sans-serif; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { font-size: 24px; color: #333; }
+        .header p { font-size: 14px; color: #666; margin: 8px 0; }
+        .header .red-tip { font-size: 14px; color: #ff0000; }
+        .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        /* 透明玻璃效果核心样式 */
+        .img-card {
+            background: rgba(255, 255, 255, 0.7); /* 白色半透明背景 */
+            backdrop-filter: blur(8px); /* 模糊效果，玻璃质感核心 */
+            -webkit-backdrop-filter: blur(8px); /* 兼容Safari/国产浏览器 */
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 柔和阴影增强层次感 */
             text-align: center;
-            line-height: 1.6;
-            max-width: 95%;
-            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.3); /* 细边框提升精致感 */
+            transition: all 0.3s ease; /* hover过渡动画 */
         }
+        /* hover效果增强交互感 */
+        .img-card:hover {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        .img-card img { width: 100%; border-radius: 6px; margin-bottom: 4px; }
+        .img-card span { font-size: 12px; color: #333; text-shadow: 0 1px 1px rgba(255,255,255,0.8); }
+        .popup { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+            padding: 20px 35px; border-radius: 10px; color: #fff;
+            text-align: center; z-index: 999; max-width: 95%;
+        }
+        .popup p { margin: 8px 0; font-size: 16px; }
+        .popup small { font-size: 14px; }
+        .fullscreen { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .fullscreen.show { display: flex; }
+        .fullscreen img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+        .fullscreen .close { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 30px; cursor: pointer; }
     </style>
     <link rel="preconnect" href="https://licn07.github.io">
 </head>
 <body>
-    <div class="loading-popup" id="loadingPopup">
-        <!-- 浏览器检测后动态插入文字 -->
+    <div class="popup" id="popup">
+        <p>请等待5秒加载图片</p>
+        <small>该弹窗5秒后自动消失</small>
     </div>
 
     <div class="header">
@@ -50,126 +63,54 @@
         <div class="red-tip">首次加载较慢见谅因为服务区在国外抱歉</div>
     </div>
 
-    <div class="gallery-container" id="gallery"></div>
+    <div class="gallery" id="gallery"></div>
 
-    <div class="fullscreen-overlay" id="fullscreenOverlay">
-        <span class="close-btn" id="closeBtn">&times;</span>
-        <img class="fullscreen-img" id="fullscreenImg" src="" alt="全屏查看">
+    <div class="fullscreen" id="fullscreen">
+        <span class="close" id="close">&times;</span>
+        <img id="fullImg" src="" alt="">
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const loadingPopup = document.getElementById('loadingPopup');
-            const gallery = document.getElementById('gallery');
-            const fullscreenOverlay = document.getElementById('fullscreenOverlay');
-            const fullscreenImg = document.getElementById('fullscreenImg');
-            const closeBtn = document.getElementById('closeBtn');
-            const totalImages = 500;
-            // 修复：降低并发数（浏览器默认最大并发是6-8，之前64会被拦截）
-            const BATCH_SIZE = 8;
-            let currentBatch = 0;
+        const popup = document.getElementById('popup');
+        const gallery = document.getElementById('gallery');
+        const fullscreen = document.getElementById('fullscreen');
+        const fullImg = document.getElementById('fullImg');
+        const closeBtn = document.getElementById('close');
+        const totalImgs = 500;
 
-            // 优化浏览器识别（兼容无特征的UA）
-            function detectBrowser() {
-                const userAgent = navigator.userAgent.toLowerCase();
-                const platform = navigator.platform.toLowerCase();
-
-                // 国产浏览器识别
-                if (userAgent.includes('vivo')) return 'vivo浏览器';
-                if (userAgent.includes('miui') || userAgent.includes('xiaomi')) return '小米浏览器';
-                if (userAgent.includes('huawei') || userAgent.includes('honor')) return '华为浏览器';
-                if (userAgent.includes('oppo') || userAgent.includes('aosp/oppo') || userAgent.includes('oppobrowser')) return 'OPPO浏览器';
-                if (userAgent.includes('meizu')) return '魅族浏览器';
-                if (userAgent.includes('qqbrowser')) return 'QQ浏览器';
-                if (userAgent.includes('ucbrowser')) return 'UC浏览器';
-                if (userAgent.includes('baidu') && userAgent.includes('browser')) return '百度浏览器';
-
-                // 主流浏览器识别
-                if (userAgent.includes('edge') && userAgent.includes('edg')) return '微软浏览器（Edge）';
-                if (userAgent.includes('chrome') && !userAgent.includes('edge')) return '谷歌浏览器（Chrome）';
-                if (userAgent.includes('firefox')) return '火狐浏览器（Firefox）';
-                if (userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('edge')) {
-                    return platform.includes('iphone') ? '苹果浏览器（Safari）' : '苹果浏览器（Safari）';
-                }
-                if (userAgent.includes('opera')) return '欧朋浏览器（Opera）';
-
-                // 无特征UA：直接显示"手机默认浏览器"（适配系统自带无标识的浏览器）
-                return '手机默认浏览器';
-            }
-
-            // 动态设置弹窗文字
-            const browserName = detectBrowser();
-            loadingPopup.innerHTML = `
-                <div>当前使用：${browserName}</div>
-                <div style="margin-top: 8px;">请等待5秒加载图片比较好感谢配合</div>
-                <div style="margin-top: 8px; font-size: 14px;">该弹窗5秒后自动消失，稍等</div>
-            `;
-
-            // 修复：分批加载+间隔延迟（避免请求被拦截）
-            function loadNextBatch() {
-                const start = currentBatch * BATCH_SIZE + 1;
-                const end = Math.min(start + BATCH_SIZE - 1, totalImages);
-
-                // 当前批次的图片请求
-                for (let i = start; i <= end; i++) {
-                    loadImage(i);
-                }
-
-                currentBatch++;
-                // 延迟100ms加载下一批（给浏览器缓冲时间）
-                if (start < totalImages) {
-                    setTimeout(loadNextBatch, 100);
-                }
-            }
-
-            function loadImage(index) {
-                const imgName = `${index}.png`;
+        // 弹窗出现时立即全速加载图片
+        (function loadAllImgs() {
+            for (let i = 1; i <= totalImgs; i++) {
                 const card = document.createElement('div');
-                card.className = 'image-card';
-
+                card.className = 'img-card';
                 const img = document.createElement('img');
-                img.loading = "lazy";
-                img.src = imgName;
-                img.alt = imgName;
-
-                const nameLabel = document.createElement('div');
-                nameLabel.className = 'image-name';
-                nameLabel.textContent = imgName;
-
-                // 加载成功显示卡片
-                img.onload = () => {
-                    card.classList.add('loaded');
+                img.src = `${i}.png`;
+                img.alt = `${i}.png`;
+                img.loading = "eager";
+                const name = document.createElement('span');
+                name.textContent = `${i}.png`;
+                
+                // 点击放大
+                card.onclick = () => {
+                    fullImg.src = img.src;
+                    fullscreen.classList.add('show');
                 };
-                // 加载失败不显示
-                img.onerror = () => {};
 
-                // 全屏查看
-                card.addEventListener('click', () => {
-                    fullscreenImg.src = img.src;
-                    fullscreenOverlay.classList.add('active');
-                });
-
-                card.appendChild(img);
-                card.appendChild(nameLabel);
-                gallery.appendChild(card);
+                card.append(img, name);
+                gallery.append(card);
             }
+        })();
 
-            // 弹窗消失后开始加载（避免弹窗遮挡时的请求拥堵）
-            setTimeout(() => {
-                loadingPopup.style.display = 'none';
-                loadNextBatch();
-            }, 5000);
+        // 5秒后隐藏弹窗
+        setTimeout(() => {
+            popup.style.display = 'none';
+        }, 5000);
 
-            // 关闭全屏
-            closeBtn.addEventListener('click', () => {
-                fullscreenOverlay.classList.remove('active');
-            });
-            fullscreenOverlay.addEventListener('click', (e) => {
-                if (e.target === fullscreenOverlay) {
-                    fullscreenOverlay.classList.remove('active');
-                }
-            });
-        });
+        // 关闭全屏
+        closeBtn.onclick = () => fullscreen.classList.remove('show');
+        fullscreen.onclick = (e) => {
+            if (e.target === fullscreen) fullscreen.classList.remove('show');
+        };
     </script>
 </body>
 </html>
