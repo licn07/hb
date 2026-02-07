@@ -22,12 +22,9 @@
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
-            opacity: 0.5; /* 未加载完成时半透明 */
+            opacity: 0.5;
         }
-        .img-card.loaded {
-            opacity: 1; /* 加载完成后完全显示 */
-            transform: translateY(0);
-        }
+        .img-card.loaded { opacity: 1; }
         .img-card:hover {
             background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -79,22 +76,22 @@
         const fullscreen = document.getElementById('fullscreen');
         const fullImg = document.getElementById('fullImg');
         const closeBtn = document.getElementById('close');
-        const totalImgs = 500; // 按实际图片总数修改
-        const imgCards = []; // 存储所有图片卡片，用于顺序显示
+        const totalImgs = 500; // 实际图片总数
+        const batchSize = 4; // 每次加载4张
+        let currentBatch = 1; // 当前批次（从1开始）
 
-        // 第一步：先创建所有图片卡片（不管命名是否正确）
+        // 先创建所有卡片（保证顺序）
         (function createAllCards() {
             for (let i = 1; i <= totalImgs; i++) {
                 const card = document.createElement('div');
                 card.className = 'img-card';
+                card.dataset.index = i;
                 const img = document.createElement('img');
                 img.src = `${i}.png`;
                 img.alt = `${i}.png`;
-                img.dataset.index = i; // 记录图片序号
                 const name = document.createElement('span');
                 name.textContent = `${i}.png`;
 
-                // 点击放大
                 card.onclick = () => {
                     fullImg.src = img.src;
                     fullscreen.classList.add('show');
@@ -102,37 +99,39 @@
 
                 card.append(img, name);
                 gallery.append(card);
-                imgCards.push(card); // 存入数组，保持顺序
             }
         })();
 
-        // 第二步：按顺序加载图片（某张加载失败不影响下一张）
-        function loadInOrder() {
-            let currentIndex = 0;
+        // 批量加载核心逻辑：当前批次4张加载完毕，立即加载下一批
+        function loadBatch() {
+            const start = (currentBatch - 1) * batchSize + 1;
+            const end = Math.min(currentBatch * batchSize, totalImgs);
+            const currentCards = Array.from(document.querySelectorAll('.img-card')).slice(start - 1, end);
+            
+            let loadedCount = 0; // 已加载完成的数量
 
-            function loadNext() {
-                if (currentIndex >= imgCards.length) return;
-
-                const card = imgCards[currentIndex];
+            // 加载当前批次的4张图片
+            currentCards.forEach(card => {
                 const img = card.querySelector('img');
-
-                // 图片加载成功/失败，都标记并继续下一张
-                function handleLoad() {
+                // 加载成功/失败都算“完成”，不阻塞后续
+                const handleComplete = () => {
                     card.classList.add('loaded');
-                    currentIndex++;
-                    // 延迟50ms加载下一张，避免请求拥堵
-                    setTimeout(loadNext, 50);
-                }
-
-                img.onload = handleLoad;
-                img.onerror = handleLoad; // 失败也继续
-            }
-
-            loadNext();
+                    loadedCount++;
+                    // 当当前批次4张全部完成，加载下一批
+                    if (loadedCount === currentCards.length) {
+                        currentBatch++;
+                        if (currentBatch * batchSize <= totalImgs) {
+                            loadBatch(); // 无延迟，立即加载下一批
+                        }
+                    }
+                };
+                img.onload = handleComplete;
+                img.onerror = handleComplete;
+            });
         }
 
-        // 弹窗出现时立即开始顺序加载
-        loadInOrder();
+        // 弹窗出现时立即启动加载（不限速）
+        loadBatch();
 
         // 5秒后隐藏弹窗
         setTimeout(() => {
