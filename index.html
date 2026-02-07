@@ -12,7 +12,6 @@
         .header p { font-size: 14px; color: #666; margin: 8px 0; }
         .header .red-tip { font-size: 14px; color: #ff0000; }
         .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        /* 修复色差+隐藏未加载卡片 */
         .img-card {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(8px);
@@ -34,13 +33,12 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transform: translateY(-2px);
         }
-        /* 统一图片显示样式，修复色差 */
         .img-card img {
             width: 100%;
             border-radius: 6px;
             margin-bottom: 4px;
-            object-fit: cover; /* 避免图片拉伸导致的视觉色差 */
-            filter: saturate(1.05); /* 微调饱和度，统一视觉效果 */
+            object-fit: cover;
+            filter: saturate(1.05);
         }
         .img-card span { font-size: 12px; color: #333; text-shadow: 0 1px 1px rgba(255,255,255,0.8); }
         .popup { 
@@ -87,11 +85,11 @@
         const fullscreen = document.getElementById('fullscreen');
         const fullImg = document.getElementById('fullImg');
         const closeBtn = document.getElementById('close');
-        const totalImgs = 500;
+        const totalImgs = 231; // 改为实际存在的图片总数
         const batchSize = 4;
         let currentBatch = 1;
 
-        // 创建所有卡片（默认隐藏）
+        // 弹窗出现时立即创建所有卡片
         (function createAllCards() {
             for (let i = 1; i <= totalImgs; i++) {
                 const card = document.createElement('div');
@@ -113,7 +111,7 @@
             }
         })();
 
-        // 批量加载：加载完成后显示卡片，无延迟续载
+        // 弹窗出现时立即开始批量加载
         function loadBatch() {
             const start = (currentBatch - 1) * batchSize + 1;
             const end = Math.min(currentBatch * batchSize, totalImgs);
@@ -124,12 +122,12 @@
             currentCards.forEach(card => {
                 const img = card.querySelector('img');
                 const handleComplete = () => {
-                    card.classList.add('loaded'); // 加载完成后显示卡片
+                    card.classList.add('loaded');
                     loadedCount++;
                     if (loadedCount === currentCards.length) {
                         currentBatch++;
                         if (currentBatch * batchSize <= totalImgs) {
-                            loadBatch(); // 立即加载下一批
+                            loadBatch();
                         }
                     }
                 };
@@ -138,10 +136,10 @@
             });
         }
 
-        // 启动加载
+        // 立即启动加载
         loadBatch();
 
-        // 隐藏弹窗
+        // 5秒后隐藏弹窗
         setTimeout(() => {
             popup.style.display = 'none';
         }, 5000);
