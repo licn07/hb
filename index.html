@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片画廊</title>
     <style>
-        /* 保持原有样式不变 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f5f5f5; padding: 10px; }
         .header { text-align: center; margin-bottom: 20px; color: #333; }
         .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
         .header p { font-size: 14px; color: #666; }
+        /* 新增红色提示文字样式 */
+        .header .red-tip { font-size: 14px; color: #ff0000; margin-top: 6px; }
         .gallery-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 100%; }
         .image-card { background-color: #fff; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; cursor: pointer; display: none; }
         .image-card.loaded { display: block; }
@@ -20,35 +21,35 @@
         .fullscreen-overlay.active { display: flex; }
         .fullscreen-img { max-width: 90%; max-height: 90%; object-fit: contain; }
         .close-btn { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
-        /* 弹窗优化：缩小尺寸，仅适配文字显示 */
         .loading-popup {
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%); /* 居中显示 */
+            transform: translate(-50%, -50%);
             background-color: rgba(0,0,0,0.8);
-            padding: 20px 25px;
+            padding: 20px 35px;
             border-radius: 10px;
             z-index: 10000;
             color: white;
             font-size: 16px;
             text-align: center;
             line-height: 1.6;
-            max-width: 85%; /* 适配小屏手机 */
+            max-width: 95%;
+            width: 100%;
         }
     </style>
-    <!-- 关键优化：预连接到图片域名，减少DNS解析时间 -->
     <link rel="preconnect" href="https://licn07.github.io">
 </head>
 <body>
     <div class="loading-popup" id="loadingPopup">
-        <div>请等待5秒加载图片比较好感谢配合</div>
-        <div style="margin-top: 10px; font-size: 14px;">该弹窗5秒后自动消失，稍等</div>
+        <!-- 浏览器检测后动态插入文字 -->
     </div>
 
     <div class="header">
         <h1>LiCN收集图片素材来自于网络</h1>
         <p>都是测试过的</p>
+        <!-- 新增红色提示文字 -->
+        <div class="red-tip">首次加载较慢见谅因为服务区在国外抱歉</div>
     </div>
 
     <div class="gallery-container" id="gallery"></div>
@@ -69,7 +70,35 @@
             const BATCH_SIZE = 64;
             let currentBatch = 0;
 
-            // 弹窗显示期间立即加载图片
+            // 浏览器检测核心逻辑
+            function detectBrowser() {
+                const userAgent = navigator.userAgent.toLowerCase();
+                if (userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('edge')) {
+                    return '苹果浏览器（Safari）';
+                } else if (userAgent.includes('chrome')) {
+                    return '谷歌浏览器（Chrome）';
+                } else if (userAgent.includes('firefox')) {
+                    return '火狐浏览器（Firefox）';
+                } else if (userAgent.includes('edge')) {
+                    return '微软浏览器（Edge）';
+                } else if (userAgent.includes('vivo')) {
+                    return 'vivo浏览器';
+                } else if (userAgent.includes('miui')) {
+                    return '小米浏览器';
+                } else {
+                    return '未知浏览器';
+                }
+            }
+
+            // 动态设置弹窗文字
+            const browserName = detectBrowser();
+            loadingPopup.innerHTML = `
+                <div>当前使用：${browserName}</div>
+                <div style="margin-top: 8px;">请等待5秒加载图片比较好感谢配合</div>
+                <div style="margin-top: 8px; font-size: 14px;">该弹窗5秒后自动消失，稍等</div>
+            `;
+
+            // 立即加载图片
             loadNextBatch();
 
             // 5秒后隐藏弹窗
@@ -118,170 +147,6 @@
                 gallery.appendChild(card);
             }
 
-            closeBtn.addEventListener('click', () => {
-                fullscreenOverlay.classList.remove('active');
-            });
-
-            fullscreenOverlay.addEventListener('click', (e) => {
-                if (e.target === fullscreenOverlay) {
-                    fullscreenOverlay.classList.remove('active');
-                }
-            });
-        });
-    </script>
-</body>
-</html>
-        }
-        .image-card {
-            background-color: #fff;
-            border-radius: 6px;
-            padding: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            text-align: center;
-            cursor: pointer;
-            display: none;
-        }
-        .image-card.loaded {
-            display: block;
-        }
-        .image-card img {
-            width: 100%;
-            height: auto;
-            border-radius: 4px;
-            margin-bottom: 4px;
-        }
-        .image-name {
-            font-size: 12px;
-            color: #666;
-        }
-        .fullscreen-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        .fullscreen-overlay.active {
-            display: flex;
-        }
-        .fullscreen-img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-        }
-        .close-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
-        }
-        .loading-popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            color: white;
-            font-size: 18px;
-            text-align: center;
-            padding: 20px;
-            line-height: 1.6;
-        }
-    </style>
-</head>
-<body>
-    <div class="loading-popup" id="loadingPopup">
-        <div>请等待5秒加载图片比较好感谢配合</div>
-        <div style="margin-top: 10px; font-size: 16px;">该弹窗5秒后自动消失，稍等</div>
-    </div>
-
-    <div class="header">
-        <h1>LiCN收集图片素材来自于网络</h1>
-        <p>都是测试过的</p>
-    </div>
-
-    <div class="gallery-container" id="gallery"></div>
-
-    <div class="fullscreen-overlay" id="fullscreenOverlay">
-        <span class="close-btn" id="closeBtn">&times;</span>
-        <img class="fullscreen-img" id="fullscreenImg" src="" alt="全屏查看">
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const loadingPopup = document.getElementById('loadingPopup');
-            const gallery = document.getElementById('gallery');
-            const fullscreenOverlay = document.getElementById('fullscreenOverlay');
-            const fullscreenImg = document.getElementById('fullscreenImg');
-            const closeBtn = document.getElementById('closeBtn');
-            const totalImages = 500;
-            const BATCH_SIZE = 16; // 一次并发加载16张，这是浏览器的最优并发数
-            let currentBatch = 0;
-
-            // 弹窗消失后开始分批次并发加载
-            setTimeout(() => {
-                loadingPopup.style.display = 'none';
-                loadNextBatch();
-            }, 5000);
-
-            // 分批次加载图片
-            function loadNextBatch() {
-                const start = currentBatch * BATCH_SIZE + 1;
-                const end = Math.min(start + BATCH_SIZE - 1, totalImages);
-
-                // 并发加载当前批次的所有图片
-                for (let i = start; i <= end; i++) {
-                    loadImage(i);
-                }
-
-                currentBatch++;
-                // 如果还有图片没加载完，立即加载下一批
-                if (start < totalImages) {
-                    loadNextBatch();
-                }
-            }
-
-            // 加载单张图片
-            function loadImage(index) {
-                const imgName = `${index}.png`;
-                const card = document.createElement('div');
-                card.className = 'image-card';
-
-                const img = document.createElement('img');
-                img.src = imgName;
-                img.alt = imgName;
-
-                const nameLabel = document.createElement('div');
-                nameLabel.className = 'image-name';
-                nameLabel.textContent = imgName;
-
-                img.onload = () => card.classList.add('loaded');
-                img.onerror = () => {}; // 加载失败直接隐藏
-
-                card.addEventListener('click', () => {
-                    fullscreenImg.src = img.src;
-                    fullscreenOverlay.classList.add('active');
-                });
-
-                card.appendChild(img);
-                card.appendChild(nameLabel);
-                gallery.appendChild(card);
-            }
-
-            // 关闭全屏查看
             closeBtn.addEventListener('click', () => {
                 fullscreenOverlay.classList.remove('active');
             });
