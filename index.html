@@ -82,9 +82,9 @@
         const fullscreen = document.getElementById('fullscreen');
         const fullImg = document.getElementById('fullImg');
         const closeBtn = document.getElementById('close');
-        const totalImgs = 231; // 你的实际图片总数
+        const totalImgs = 500; // 请根据实际图片总数修改这个值
 
-        // 立即生成所有图片卡片，不等待弹窗消失
+        // 立即生成所有图片卡片
         for (let i = 1; i <= totalImgs; i++) {
             const card = document.createElement('div');
             card.className = 'img-card';
@@ -109,6 +109,10 @@
         closeBtn.onclick = () => fullscreen.classList.remove('show');
         fullscreen.onclick = (e) => {
             if (e.target === fullscreen) fullscreen.classList.remove('show');
+        };
+    </script>
+</body>
+</html>
         };
     </script>
 </body>
