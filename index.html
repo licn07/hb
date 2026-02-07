@@ -12,19 +12,19 @@
         .header p { font-size: 14px; color: #666; margin: 8px 0; }
         .header .red-tip { font-size: 14px; color: #ff0000; }
         .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        /* 透明玻璃效果核心样式 */
         .img-card {
-            background: rgba(255, 255, 255, 0.7); /* 白色半透明背景 */
-            backdrop-filter: blur(8px); /* 模糊效果，玻璃质感核心 */
-            -webkit-backdrop-filter: blur(8px); /* 兼容Safari/国产浏览器 */
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border-radius: 8px;
             padding: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 柔和阴影增强层次感 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.3); /* 细边框提升精致感 */
-            transition: all 0.3s ease; /* hover过渡动画 */
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            display: none; /* 初始隐藏，按顺序显示 */
         }
-        /* hover效果增强交互感 */
+        .img-card.show { display: block; } /* 按顺序添加显示类 */
         .img-card:hover {
             background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -77,19 +77,35 @@
         const fullImg = document.getElementById('fullImg');
         const closeBtn = document.getElementById('close');
         const totalImgs = 500;
+        let currentImg = 1; // 当前要显示的图片序号
 
-        // 弹窗出现时立即全速加载图片
-        (function loadAllImgs() {
-            for (let i = 1; i <= totalImgs; i++) {
+        // 弹窗出现时立即开始按顺序加载+显示图片
+        (function loadAndShowInOrder() {
+            // 递归函数：加载当前序号图片，成功后显示并加载下一张
+            function loadNext() {
+                if (currentImg > totalImgs) return; // 所有图片加载完成
+
                 const card = document.createElement('div');
                 card.className = 'img-card';
                 const img = document.createElement('img');
-                img.src = `${i}.png`;
-                img.alt = `${i}.png`;
-                img.loading = "eager";
+                img.src = `${currentImg}.png`;
+                img.alt = `${currentImg}.png`;
                 const name = document.createElement('span');
-                name.textContent = `${i}.png`;
-                
+                name.textContent = `${currentImg}.png`;
+
+                // 图片加载成功后，立即显示当前卡片，再加载下一张
+                img.onload = () => {
+                    card.classList.add('show');
+                    currentImg++;
+                    loadNext(); // 加载下一张，保持顺序
+                };
+
+                // 加载失败也继续下一张，不中断顺序
+                img.onerror = () => {
+                    currentImg++;
+                    loadNext();
+                };
+
                 // 点击放大
                 card.onclick = () => {
                     fullImg.src = img.src;
@@ -99,6 +115,9 @@
                 card.append(img, name);
                 gallery.append(card);
             }
+
+            // 启动顺序加载
+            loadNext();
         })();
 
         // 5秒后隐藏弹窗
