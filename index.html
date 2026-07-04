@@ -65,7 +65,7 @@
             line-height: 1.5;
             position: relative;
             z-index: 1;
-            display: block;  /* 改为默认显示 */
+            display: block;
         }
         .notice .title {
             font-weight: 600;
@@ -403,7 +403,7 @@
 
         <!-- 标题栏已删除 -->
 
-        <!-- 静态公告（现在默认显示） -->
+        <!-- 静态公告（默认显示） -->
         <div class="notice" id="staticNotice">
             <div class="title">公告</div>
             <div style="font-size:12px; line-height:1.6; opacity:0.95;">
@@ -442,7 +442,7 @@
         // 配置区
         // ============================================================
         const TOTAL_IMAGES = 300;
-        const IMAGE_EXT = 'webp';
+        const IMAGE_EXT = 'jpg';   // 已改成 jpg 小写
         const BATCH_SIZE = 20;
         const BATCH_INTERVAL = 50;
         // ============================================================
@@ -667,7 +667,7 @@
             bgImg.src = './bg.png';
         });
 
-        console.log(`✅ LC图库初始化完成，共 ${TOTAL_IMAGES} 张，公告默认显示。`);
+        console.log(`✅ LC图库初始化完成，共 ${TOTAL_IMAGES} 张，后缀已改为 jpg。`);
     </script>
 </body>
 </html>
