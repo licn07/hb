@@ -52,7 +52,6 @@
             pointer-events: none;
         }
 
-        /* ----- 公告（默认显示） ----- */
         .notice {
             background: rgba(255, 255, 255, 0.06);
             backdrop-filter: blur(6px);
@@ -98,7 +97,6 @@
             background: rgba(255, 255, 255, 0.16);
         }
 
-        /* ----- 图片网格 ----- */
         .grid {
             display: none;
             grid-template-columns: repeat(4, 1fr);
@@ -147,6 +145,7 @@
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.04);
             font-weight: 500;
+            /* 编号常驻，不会被覆盖 */
         }
 
         @keyframes fadeInUp {
@@ -167,7 +166,6 @@
             background: rgba(255, 255, 255, 0.02);
         }
 
-        /* ----- 底部 ----- */
         .footer-info {
             text-align: center;
             margin-top: 14px;
@@ -180,7 +178,6 @@
             display: none;
         }
 
-        /* ----- 灯箱 ----- */
         .lightbox {
             display: none;
             position: fixed;
@@ -235,7 +232,6 @@
         .lightbox .nav-left { left: 0; }
         .lightbox .nav-right { right: 0; }
 
-        /* ========== 进入弹窗 ========== */
         .entry-modal {
             display: none;
             position: fixed;
@@ -345,7 +341,6 @@
             background: rgba(255, 70, 70, 0.30);
         }
 
-        /* 退出覆盖层 */
         .exit-overlay {
             display: none;
             position: fixed;
@@ -371,7 +366,7 @@
 </head>
 <body>
 
-    <!-- ====== 进入弹窗 ====== -->
+    <!-- 进入弹窗 -->
     <div class="entry-modal" id="entryModal">
         <div class="modal-box">
             <div class="modal-title">📢 公告</div>
@@ -391,19 +386,19 @@
         </div>
     </div>
 
-    <!-- ====== 退出覆盖层 ====== -->
+    <!-- 退出覆盖层 -->
     <div class="exit-overlay" id="exitOverlay">
         <div class="exit-icon">🚫</div>
         <div class="exit-text">您已选择退出服务</div>
         <div class="exit-sub">页面即将关闭...</div>
     </div>
 
-    <!-- ====== 主应用 ====== -->
+    <!-- 主应用 -->
     <div class="app">
 
         <!-- 标题栏已删除 -->
 
-        <!-- 静态公告（默认显示） -->
+        <!-- 静态公告 -->
         <div class="notice" id="staticNotice">
             <div class="title">公告</div>
             <div style="font-size:12px; line-height:1.6; opacity:0.95;">
@@ -418,17 +413,17 @@
             </div>
         </div>
 
-        <!-- 图片网格（初始隐藏） -->
+        <!-- 图片网格 -->
         <div class="grid" id="imageGrid"></div>
 
-        <!-- 底部（初始隐藏） -->
+        <!-- 底部 -->
         <div class="footer-info" id="footerInfo">
             💡 点击图片放大 · 左右滑动切换
         </div>
 
     </div>
 
-    <!-- ====== 图片灯箱 ====== -->
+    <!-- 图片灯箱 -->
     <div class="lightbox" id="lightbox">
         <span class="close" id="closeLightbox">&times;</span>
         <img id="lightboxImg" src="" alt="预览">
@@ -442,7 +437,7 @@
         // 配置区
         // ============================================================
         const TOTAL_IMAGES = 300;
-        const IMAGE_EXT = 'jpg';   // 已改成 jpg 小写
+        const IMAGE_EXT = 'jpg';
         const BATCH_SIZE = 20;
         const BATCH_INTERVAL = 50;
         // ============================================================
@@ -533,19 +528,32 @@
             isLoaded = true;
         }
 
-        // ---------- 排序（仅保留公告里的排序按钮） ----------
-        function toggleSort() {
-            sortAsc = !sortAsc;
-            filteredImages.sort((a, b) => sortAsc ? a - b : b - a);
-            if (isLoaded) {
+        // ---------- 改进后的刷新和排序 ----------
+        function refreshGrid() {
+            if (!isLoaded) {
+                // 自动加载图片
                 renderGrid(filteredImages);
-                const label = sortAsc ? '正序' : '倒序';
-                sortNoticeBtn.textContent = '📋 ' + label;
+                sortNoticeBtn.textContent = '📋 正序';
+                return;
             }
+            // 已加载：只刷新显示（图片从缓存取，不会重新下载）
+            renderGrid(filteredImages);
         }
 
-        function refreshGrid() {
-            if (isLoaded) renderGrid(filteredImages);
+        function toggleSort() {
+            if (!isLoaded) {
+                // 先加载
+                renderGrid(filteredImages);
+                sortNoticeBtn.textContent = '📋 正序';
+                // 递归调用自身执行排序
+                toggleSort();
+                return;
+            }
+            sortAsc = !sortAsc;
+            filteredImages.sort((a, b) => sortAsc ? a - b : b - a);
+            renderGrid(filteredImages);
+            const label = sortAsc ? '正序' : '倒序';
+            sortNoticeBtn.textContent = '📋 ' + label;
         }
 
         // ---------- 灯箱 ----------
@@ -667,7 +675,7 @@
             bgImg.src = './bg.png';
         });
 
-        console.log(`✅ LC图库初始化完成，共 ${TOTAL_IMAGES} 张，后缀已改为 jpg。`);
+        console.log(`✅ LC图库初始化完成，共 ${TOTAL_IMAGES} 张，按钮已优化。`);
     </script>
 </body>
 </html>
