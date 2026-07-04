@@ -2,109 +2,672 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>我的邮箱</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>LC图库</title>
     <style>
-        body { margin: 0; background: #fff5f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; height: 100vh; }
-        .view { position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-        .card { background: white; padding: 25px; border-radius: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        input { width: 100%; padding: 20px; margin: 10px 0; border: 2px solid #eee; border-radius: 16px; font-size: 18px; box-sizing: border-box; outline: none; }
-        button { width: 100%; padding: 20px; border: none; border-radius: 16px; background: #000; color: white; font-size: 18px; font-weight: bold; margin-top: 10px; }
-        
-        /* 多账号列表样式 */
-        .account-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; }
-        .petal { position: absolute; background: #ffcce0; border-radius: 50%; pointer-events: none; animation: fall linear infinite; }
-        @keyframes fall { to { transform: translateY(100vh) rotate(360deg); } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            background-image: url('./bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 12px 8px 30px;
+        }
+
+        .app {
+            max-width: 450px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border-radius: 28px;
+            padding: 16px 12px 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app::before {
+            content: '';
+            position: absolute;
+            top: -80px;
+            right: -80px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            filter: blur(70px);
+            pointer-events: none;
+        }
+
+        /* ----- 公告（默认显示） ----- */
+        .notice {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(6px);
+            border-radius: 14px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+            display: block;  /* 改为默认显示 */
+        }
+        .notice .title {
+            font-weight: 600;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .notice .title::before { content: '📢'; font-size: 14px; }
+        .notice .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+            justify-content: flex-end;
+        }
+        .notice .actions button {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 3px 12px;
+            border-radius: 30px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .notice .actions button:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        /* ----- 图片网格 ----- */
+        .grid {
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 4px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            cursor: pointer;
+            position: relative;
+            aspect-ratio: 9 / 14;
+            transition: transform 0.2s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.45s ease forwards;
+            will-change: transform, opacity;
+        }
+
+        .card:active { transform: scale(0.94); }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .card .index-label {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            padding: 1px 8px;
+            border-radius: 30px;
+            font-size: 10px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-weight: 500;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .empty-tip {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            padding: 30px 0;
+            backdrop-filter: blur(4px);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* ----- 底部 ----- */
+        .footer-info {
+            text-align: center;
+            margin-top: 14px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 11px;
+            position: relative;
+            z-index: 1;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            display: none;
+        }
+
+        /* ----- 灯箱 ----- */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox img {
+            max-width: 92%;
+            max-height: 80%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .lightbox .close {
+            position: absolute;
+            top: 18px;
+            right: 22px;
+            font-size: 32px;
+            color: #fff;
+            opacity: 0.7;
+            cursor: pointer;
+            z-index: 10001;
+            font-weight: 300;
+        }
+        .lightbox .close:active { opacity: 1; }
+        .lightbox .counter {
+            position: absolute;
+            bottom: 28px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+        .lightbox .nav-area {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 25%;
+            z-index: 10000;
+            cursor: pointer;
+        }
+        .lightbox .nav-left { left: 0; }
+        .lightbox .nav-right { right: 0; }
+
+        /* ========== 进入弹窗 ========== */
+        .entry-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 100000;
+            justify-content: center;
+            align-items: center;
+            padding: 24px 16px;
+        }
+        .entry-modal.active { display: flex; }
+
+        .entry-modal .modal-box {
+            max-width: 380px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.10);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 24px;
+            padding: 24px 20px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .entry-modal .modal-box::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 50%;
+            filter: blur(60px);
+            pointer-events: none;
+        }
+
+        .entry-modal .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .entry-modal .modal-body {
+            font-size: 13px;
+            line-height: 1.7;
+            opacity: 0.92;
+            margin-bottom: 20px;
+            padding: 0 4px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .entry-modal .modal-body p {
+            margin-bottom: 8px;
+        }
+        .entry-modal .modal-body .highlight {
+            color: #ffd700;
+            font-weight: 500;
+        }
+
+        .entry-modal .modal-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+        .entry-modal .modal-actions button {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 40px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
+        }
+        .entry-modal .modal-actions .btn-reject {
+            background: rgba(255, 70, 70, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 70, 70, 0.2);
+            order: 0;
+        }
+        .entry-modal .modal-actions .btn-agree {
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            order: 1;
+        }
+        .entry-modal .modal-actions button:active {
+            transform: scale(0.94);
+        }
+        .entry-modal .modal-actions .btn-agree:active {
+            background: rgba(255, 255, 255, 0.30);
+        }
+        .entry-modal .modal-actions .btn-reject:active {
+            background: rgba(255, 70, 70, 0.30);
+        }
+
+        /* 退出覆盖层 */
+        .exit-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 200000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #fff;
+            padding: 40px;
+            text-align: center;
+        }
+        .exit-overlay.active { display: flex; }
+        .exit-overlay .exit-icon { font-size: 48px; margin-bottom: 16px; }
+        .exit-overlay .exit-text { font-size: 18px; opacity: 0.9; line-height: 1.6; }
+        .exit-overlay .exit-sub { font-size: 13px; opacity: 0.4; margin-top: 8px; }
     </style>
 </head>
 <body>
 
-    <div id="view-list" class="view">
-        <div class="card">
-            <h2 style="margin-top:0">账号列表</h2>
-            <div id="list-container"></div>
-            <button onclick="showPage('view-add')">+ 添加账号</button>
+    <!-- ====== 进入弹窗 ====== -->
+    <div class="entry-modal" id="entryModal">
+        <div class="modal-box">
+            <div class="modal-title">📢 公告</div>
+            <div class="modal-body">
+                <p>尊敬的客户，为保障双方权益，现将海报服务相关事宜说明如下：</p>
+                <p><strong>1. 风险说明：</strong>该海报存在风险（恢复原版海报冻结一段时间），出现此情况我们免费补发名片，不会封号。下单前请知悉风险。</p>
+                <p><strong>2. 封功能补偿：</strong>若账号被限制使用海报功能，请联系我，补偿名片一张。</p>
+                <p><strong>3. 退款规则：</strong>订单生成即服务生效，单方面无理由退款不予处理，有问题请客服沟通。</p>
+                <p style="margin-top:12px; text-align:center; color:rgba(255,255,255,0.7);">
+                    确认知晓请点“明白”，否则可选择“拒绝”退出。
+                </p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-reject" id="modalReject">拒绝</button>
+                <button class="btn-agree" id="modalAgree">明白</button>
+            </div>
         </div>
     </div>
 
-    <div id="view-add" class="view" style="display:none;">
-        <div class="card">
-            <h2>设置新账号</h2>
-            <input type="text" id="in-prefix" placeholder="前缀 (使用 1secmail 后缀)">
-            <input type="password" id="in-pass" placeholder="设置访问密码">
-            <button onclick="saveAccount()">保存并进入</button>
-            <button style="background:#eee; color:#000" onclick="showPage('view-list')">返回</button>
-        </div>
+    <!-- ====== 退出覆盖层 ====== -->
+    <div class="exit-overlay" id="exitOverlay">
+        <div class="exit-icon">🚫</div>
+        <div class="exit-text">您已选择退出服务</div>
+        <div class="exit-sub">页面即将关闭...</div>
     </div>
 
-    <div id="view-inbox" class="view" style="display:none;">
-        <div class="card">
-            <h3 id="email-title"></h3>
-            <button onclick="checkMails()">🔄 刷新收件箱</button>
-            <div id="mail-list" style="margin:20px 0; min-height:100px;"></div>
-            <button style="background:#ff3b30" onclick="showPage('view-list')">退出登录</button>
+    <!-- ====== 主应用 ====== -->
+    <div class="app">
+
+        <!-- 标题栏已删除 -->
+
+        <!-- 静态公告（现在默认显示） -->
+        <div class="notice" id="staticNotice">
+            <div class="title">公告</div>
+            <div style="font-size:12px; line-height:1.6; opacity:0.95;">
+                推荐图库半透明图比较稳<br>
+                上号格式:系统+区+图片编号<br>
+                例如:安卓q区+海报15号<br>
+                <span style="color: #ff4d4d;">如遇加载缓慢，请尝试刷新或切换网络。</span>
+            </div>
+            <div class="actions">
+                <button id="refreshNoticeBtn">🔄 刷新</button>
+                <button id="sortNoticeBtn">📋 正序</button>
+            </div>
         </div>
+
+        <!-- 图片网格（初始隐藏） -->
+        <div class="grid" id="imageGrid"></div>
+
+        <!-- 底部（初始隐藏） -->
+        <div class="footer-info" id="footerInfo">
+            💡 点击图片放大 · 左右滑动切换
+        </div>
+
+    </div>
+
+    <!-- ====== 图片灯箱 ====== -->
+    <div class="lightbox" id="lightbox">
+        <span class="close" id="closeLightbox">&times;</span>
+        <img id="lightboxImg" src="" alt="预览">
+        <span class="counter" id="imageCounter">1 / 1</span>
+        <div class="nav-area nav-left" id="prevImage"></div>
+        <div class="nav-area nav-right" id="nextImage"></div>
     </div>
 
     <script>
-        let accounts = JSON.parse(localStorage.getItem('my_mails') || '[]');
-        let currentIdx = -1;
+        // ============================================================
+        // 配置区
+        // ============================================================
+        const TOTAL_IMAGES = 300;
+        const IMAGE_EXT = 'webp';
+        const BATCH_SIZE = 20;
+        const BATCH_INTERVAL = 50;
+        // ============================================================
 
-        function showPage(id) {
-            document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-            document.getElementById(id).style.display = 'flex';
-            if(id === 'view-list') renderList();
+        function getImagePath(index) {
+            return `./${index}.${IMAGE_EXT}`;
         }
 
-        function renderList() {
-            const container = document.getElementById('list-container');
-            container.innerHTML = accounts.map((acc, i) => `
-                <div class="account-item" onclick="tryLogin(${i})">
-                    <span>${acc.email}</span> <span>🔑</span>
-                </div>
-            `).join('');
+        // ---------- DOM ----------
+        const grid = document.getElementById('imageGrid');
+        const refreshNoticeBtn = document.getElementById('refreshNoticeBtn');
+        const sortNoticeBtn = document.getElementById('sortNoticeBtn');
+        const totalSpan = document.getElementById('totalCount');
+        const staticNotice = document.getElementById('staticNotice');
+        const footerInfo = document.getElementById('footerInfo');
+
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+        const counter = document.getElementById('imageCounter');
+        const closeBtn = document.getElementById('closeLightbox');
+        const prevBtn = document.getElementById('prevImage');
+        const nextBtn = document.getElementById('nextImage');
+
+        const entryModal = document.getElementById('entryModal');
+        const modalAgree = document.getElementById('modalAgree');
+        const modalReject = document.getElementById('modalReject');
+        const exitOverlay = document.getElementById('exitOverlay');
+
+        // ---------- 数据 ----------
+        let allImages = [];
+        let filteredImages = [];
+        let currentLightboxIndex = 0;
+        let sortAsc = true;
+        let isLoaded = false;
+
+        function initData() {
+            allImages = [];
+            for (let i = 1; i <= TOTAL_IMAGES; i++) {
+                allImages.push(i);
+            }
+            filteredImages = [...allImages];
         }
 
-        function saveAccount() {
-            const prefix = document.getElementById('in-prefix').value;
-            const pass = document.getElementById('in-pass').value;
-            accounts.push({ email: prefix + "@1secmail.com", pass: pass, prefix: prefix });
-            localStorage.setItem('my_mails', JSON.stringify(accounts));
-            showPage('view-list');
+        // ---------- 分批预加载 ----------
+        function preloadImagesBatch() {
+            return new Promise((resolve) => {
+                let index = 0;
+                function loadBatch() {
+                    const end = Math.min(index + BATCH_SIZE, TOTAL_IMAGES);
+                    for (let i = index; i < end; i++) {
+                        const img = new Image();
+                        img.src = getImagePath(i + 1);
+                    }
+                    index = end;
+                    if (index < TOTAL_IMAGES) {
+                        setTimeout(loadBatch, BATCH_INTERVAL);
+                    } else {
+                        resolve();
+                    }
+                }
+                loadBatch();
+            });
         }
 
-        function tryLogin(idx) {
-            const p = prompt("请输入访问密码:");
-            if(p === accounts[idx].pass) {
-                currentIdx = idx;
-                document.getElementById('email-title').innerText = accounts[idx].email;
-                showPage('view-inbox');
-                checkMails();
-            } else {
-                alert("密码错误");
+        // ---------- 渲染网格 ----------
+        function renderGrid(imageList) {
+            if (!imageList || imageList.length === 0) {
+                grid.innerHTML = `<div class="empty-tip">😕 没有找到匹配的图片</div>`;
+                grid.style.display = 'grid';
+                return;
+            }
+            let html = '';
+            const baseDelay = 20;
+            imageList.forEach((num, index) => {
+                const src = getImagePath(num);
+                const delay = index * baseDelay;
+                html += `
+                    <div class="card" data-index="${num}" style="animation-delay: ${delay}ms;">
+                        <img src="${src}" alt="图片 ${num}" loading="lazy" onerror="this.style.display='none'">
+                        <span class="index-label">#${num}</span>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+            grid.style.display = 'grid';
+            totalSpan.textContent = imageList.length;
+            footerInfo.style.display = 'block';
+            isLoaded = true;
+        }
+
+        // ---------- 排序（仅保留公告里的排序按钮） ----------
+        function toggleSort() {
+            sortAsc = !sortAsc;
+            filteredImages.sort((a, b) => sortAsc ? a - b : b - a);
+            if (isLoaded) {
+                renderGrid(filteredImages);
+                const label = sortAsc ? '正序' : '倒序';
+                sortNoticeBtn.textContent = '📋 ' + label;
             }
         }
 
-        async function checkMails() {
-            const acc = accounts[currentIdx];
-            const list = document.getElementById('mail-list');
-            list.innerHTML = "加载中...";
-            const res = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${acc.prefix}&domain=1secmail.com`);
-            const data = await res.json();
-            list.innerHTML = data.length ? data.map(m => `<div>${m.from}</div>`).join('') : "暂无邮件";
+        function refreshGrid() {
+            if (isLoaded) renderGrid(filteredImages);
         }
 
-        // 花瓣特效
-        setInterval(() => {
-            const p = document.createElement('div');
-            p.className = 'petal';
-            const size = Math.random()*15+5 + 'px';
-            p.style.width = p.style.height = size;
-            p.style.left = Math.random()*100 + '%';
-            p.style.animationDuration = Math.random()*3+3 + 's';
-            document.body.appendChild(p);
-            setTimeout(() => p.remove(), 6000);
-        }, 800);
+        // ---------- 灯箱 ----------
+        function openLightbox(indexInFiltered) {
+            if (filteredImages.length === 0) return;
+            currentLightboxIndex = indexInFiltered;
+            updateLightbox();
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function updateLightbox() {
+            const num = filteredImages[currentLightboxIndex];
+            if (!num) return;
+            lightboxImg.src = getImagePath(num);
+            counter.textContent = `${currentLightboxIndex + 1} / ${filteredImages.length}`;
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function prevImage() {
+            if (filteredImages.length === 0) return;
+            currentLightboxIndex = (currentLightboxIndex - 1 + filteredImages.length) % filteredImages.length;
+            updateLightbox();
+        }
+
+        function nextImage() {
+            if (filteredImages.length === 0) return;
+            currentLightboxIndex = (currentLightboxIndex + 1) % filteredImages.length;
+            updateLightbox();
+        }
+
+        // ---------- 弹窗控制 ----------
+        function showEntryModal() {
+            entryModal.classList.add('active');
+        }
+
+        function hideEntryModal() {
+            entryModal.classList.remove('active');
+        }
+
+        modalAgree.addEventListener('click', function() {
+            hideEntryModal();
+            renderGrid(filteredImages);
+            sortNoticeBtn.textContent = '📋 正序';
+        });
+
+        modalReject.addEventListener('click', function() {
+            hideEntryModal();
+            exitOverlay.classList.add('active');
+            setTimeout(function() {
+                window.close();
+                setTimeout(function() {
+                    window.location.href = 'about:blank';
+                }, 500);
+            }, 800);
+        });
+
+        // ---------- 事件绑定 ----------
+        grid.addEventListener('click', function(e) {
+            const card = e.target.closest('.card');
+            if (!card) return;
+            const num = parseInt(card.dataset.index, 10);
+            const idx = filteredImages.indexOf(num);
+            if (idx !== -1) {
+                openLightbox(idx);
+            }
+        });
+
+        refreshNoticeBtn.addEventListener('click', refreshGrid);
+        sortNoticeBtn.addEventListener('click', toggleSort);
+
+        closeBtn.addEventListener('click', closeLightbox);
+        prevBtn.addEventListener('click', prevImage);
+        nextBtn.addEventListener('click', nextImage);
+        lightbox.addEventListener('click', function(e) {
+            if (e.target === lightbox) closeLightbox();
+        });
+
+        let touchStartX = 0;
+        lightbox.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        lightbox.addEventListener('touchend', function(e) {
+            const diff = touchStartX - e.changedTouches[0].screenX;
+            if (Math.abs(diff) > 40) {
+                if (diff > 0) nextImage();
+                else prevImage();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (!lightbox.classList.contains('active')) return;
+            if (e.key === 'ArrowLeft') prevImage();
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // ---------- 启动 ----------
+        initData();
+
+        window.addEventListener('load', function() {
+            const bgImg = new Image();
+            bgImg.onload = function() {
+                console.log('背景加载完成，开始分批预加载图片...');
+                preloadImagesBatch().then(() => {
+                    console.log('所有图片预加载完成');
+                });
+                setTimeout(showEntryModal, 300);
+            };
+            bgImg.onerror = function() {
+                console.warn('背景加载失败，继续预加载');
+                preloadImagesBatch();
+                setTimeout(showEntryModal, 300);
+            };
+            bgImg.src = './bg.png';
+        });
+
+        console.log(`✅ LC图库初始化完成，共 ${TOTAL_IMAGES} 张，公告默认显示。`);
     </script>
 </body>
 </html>
