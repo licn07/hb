@@ -118,7 +118,6 @@
             position: relative;
             aspect-ratio: 9 / 14;
             transition: transform 0.2s ease;
-            /* 入场动画默认启用，但刷新/排序时通过 JS 控制移除 */
             opacity: 0;
             transform: translateY(20px);
             animation: fadeInUp 0.45s ease forwards;
@@ -383,9 +382,8 @@
             <div class="modal-title">📢 公告</div>
             <div class="modal-body">
                 <p>尊敬的客户，为保障双方权益，现将海报服务相关事宜说明如下：</p>
-                <p><strong>1. 风险说明：</strong>该海报存在风险（恢复原版海报冻结一段时间），出现此情况我们免费补发名片，不会封号。下单前请知悉风险。</p>
-                <p><strong>2. 封功能补偿：</strong>若账号被限制使用海报功能，请联系我，补偿名片一张。</p>
-                <p><strong>3. 退款规则：</strong>订单生成即服务生效，单方面无理由退款不予处理，有问题请客服沟通。</p>
+                <p><strong>1. 风险说明：</strong>该海报存在风险（恢复原版海报冻结一段时间），不会封号。下单前请知悉风险。</p>
+                <p><strong>2. 封功能补偿：</strong>若改完海报后账号24小时内被限制使用海报功能，请联系我，补偿名片一张  自定义图片不补</p>
                 <p style="margin-top:12px; text-align:center; color:rgba(255,255,255,0.7);">
                     确认知晓请点“明白”，否则可选择“拒绝”退出。
                 </p>
@@ -445,7 +443,7 @@
         // ============================================================
         // 配置
         // ============================================================
-        const TOTAL_IMAGES = 300;
+        const TOTAL_IMAGES = 411;          // 改为 411
         const IMAGE_EXT = 'jpg';
         const PAGE_SIZE = 20;
 
