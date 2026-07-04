@@ -52,6 +52,7 @@
             pointer-events: none;
         }
 
+        /* ----- 公告（默认显示） ----- */
         .notice {
             background: rgba(255, 255, 255, 0.06);
             backdrop-filter: blur(6px);
@@ -97,6 +98,7 @@
             background: rgba(255, 255, 255, 0.16);
         }
 
+        /* ----- 图片网格 ----- */
         .grid {
             display: none;
             grid-template-columns: repeat(4, 1fr);
@@ -145,7 +147,6 @@
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.04);
             font-weight: 500;
-            /* 编号常驻，不会被覆盖 */
         }
 
         @keyframes fadeInUp {
@@ -166,11 +167,12 @@
             background: rgba(255, 255, 255, 0.02);
         }
 
+        /* ----- 底部信息（显示加载进度） ----- */
         .footer-info {
             text-align: center;
             margin-top: 14px;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
             position: relative;
             z-index: 1;
             padding-top: 10px;
@@ -178,6 +180,7 @@
             display: none;
         }
 
+        /* ----- 灯箱 ----- */
         .lightbox {
             display: none;
             position: fixed;
@@ -232,6 +235,7 @@
         .lightbox .nav-left { left: 0; }
         .lightbox .nav-right { right: 0; }
 
+        /* ========== 进入弹窗 ========== */
         .entry-modal {
             display: none;
             position: fixed;
@@ -341,6 +345,7 @@
             background: rgba(255, 70, 70, 0.30);
         }
 
+        /* 退出覆盖层 */
         .exit-overlay {
             display: none;
             position: fixed;
@@ -366,7 +371,7 @@
 </head>
 <body>
 
-    <!-- 进入弹窗 -->
+    <!-- ====== 进入弹窗 ====== -->
     <div class="entry-modal" id="entryModal">
         <div class="modal-box">
             <div class="modal-title">📢 公告</div>
@@ -386,19 +391,19 @@
         </div>
     </div>
 
-    <!-- 退出覆盖层 -->
+    <!-- ====== 退出覆盖层 ====== -->
     <div class="exit-overlay" id="exitOverlay">
         <div class="exit-icon">🚫</div>
         <div class="exit-text">您已选择退出服务</div>
         <div class="exit-sub">页面即将关闭...</div>
     </div>
 
-    <!-- 主应用 -->
+    <!-- ====== 主应用 ====== -->
     <div class="app">
 
         <!-- 标题栏已删除 -->
 
-        <!-- 静态公告 -->
+        <!-- 静态公告（默认显示） -->
         <div class="notice" id="staticNotice">
             <div class="title">公告</div>
             <div style="font-size:12px; line-height:1.6; opacity:0.95;">
@@ -413,17 +418,15 @@
             </div>
         </div>
 
-        <!-- 图片网格 -->
+        <!-- 图片网格（初始隐藏） -->
         <div class="grid" id="imageGrid"></div>
 
-        <!-- 底部 -->
-        <div class="footer-info" id="footerInfo">
-            💡 点击图片放大 · 左右滑动切换
-        </div>
+        <!-- 底部信息（显示加载进度） -->
+        <div class="footer-info" id="footerInfo">💡 点击图片放大 · 左右滑动切换</div>
 
     </div>
 
-    <!-- 图片灯箱 -->
+    <!-- ====== 图片灯箱 ====== -->
     <div class="lightbox" id="lightbox">
         <span class="close" id="closeLightbox">&times;</span>
         <img id="lightboxImg" src="" alt="预览">
@@ -438,8 +441,7 @@
         // ============================================================
         const TOTAL_IMAGES = 300;
         const IMAGE_EXT = 'jpg';
-        const BATCH_SIZE = 20;
-        const BATCH_INTERVAL = 50;
+        const PAGE_SIZE = 20;           // 每次加载20张
         // ============================================================
 
         function getImagePath(index) {
@@ -448,11 +450,10 @@
 
         // ---------- DOM ----------
         const grid = document.getElementById('imageGrid');
-        const refreshNoticeBtn = document.getElementById('refreshNoticeBtn');
-        const sortNoticeBtn = document.getElementById('sortNoticeBtn');
-        const totalSpan = document.getElementById('totalCount');
-        const staticNotice = document.getElementById('staticNotice');
+        const refreshBtn = document.getElementById('refreshNoticeBtn');
+        const sortBtn = document.getElementById('sortNoticeBtn');
         const footerInfo = document.getElementById('footerInfo');
+        const staticNotice = document.getElementById('staticNotice');
 
         const lightbox = document.getElementById('lightbox');
         const lightboxImg = document.getElementById('lightboxImg');
@@ -472,46 +473,28 @@
         let currentLightboxIndex = 0;
         let sortAsc = true;
         let isLoaded = false;
+        let loadedCount = 0;            // 当前已加载的数量
+        let isLoadingMore = false;
 
+        // ---------- 初始化数据 ----------
         function initData() {
-            allImages = [];
-            for (let i = 1; i <= TOTAL_IMAGES; i++) {
-                allImages.push(i);
-            }
+            allImages = Array.from({ length: TOTAL_IMAGES }, (_, i) => i + 1);
             filteredImages = [...allImages];
         }
 
-        // ---------- 分批预加载 ----------
-        function preloadImagesBatch() {
-            return new Promise((resolve) => {
-                let index = 0;
-                function loadBatch() {
-                    const end = Math.min(index + BATCH_SIZE, TOTAL_IMAGES);
-                    for (let i = index; i < end; i++) {
-                        const img = new Image();
-                        img.src = getImagePath(i + 1);
-                    }
-                    index = end;
-                    if (index < TOTAL_IMAGES) {
-                        setTimeout(loadBatch, BATCH_INTERVAL);
-                    } else {
-                        resolve();
-                    }
-                }
-                loadBatch();
-            });
-        }
-
-        // ---------- 渲染网格 ----------
-        function renderGrid(imageList) {
-            if (!imageList || imageList.length === 0) {
-                grid.innerHTML = `<div class="empty-tip">😕 没有找到匹配的图片</div>`;
+        // ---------- 渲染当前已加载的图片 ----------
+        function renderGrid() {
+            const list = filteredImages.slice(0, loadedCount);
+            if (list.length === 0) {
+                grid.innerHTML = `<div class="empty-tip">😕 没有匹配的图片</div>`;
                 grid.style.display = 'grid';
+                footerInfo.style.display = 'block';
+                footerInfo.textContent = '没有图片可显示';
                 return;
             }
             let html = '';
-            const baseDelay = 20;
-            imageList.forEach((num, index) => {
+            const baseDelay = 10; // 每个卡片延迟10ms，避免首屏卡顿
+            list.forEach((num, index) => {
                 const src = getImagePath(num);
                 const delay = index * baseDelay;
                 html += `
@@ -523,37 +506,87 @@
             });
             grid.innerHTML = html;
             grid.style.display = 'grid';
-            totalSpan.textContent = imageList.length;
+            // 更新底部信息
+            if (loadedCount >= filteredImages.length) {
+                footerInfo.textContent = `✅ 已全部加载（共 ${filteredImages.length} 张）`;
+            } else {
+                footerInfo.textContent = `已加载 ${loadedCount}/${filteredImages.length}，继续滑动加载更多`;
+            }
             footerInfo.style.display = 'block';
             isLoaded = true;
+            // 如果已全部加载，移除滚动监听
+            if (loadedCount >= filteredImages.length) {
+                window.removeEventListener('scroll', onScroll);
+            }
         }
 
-        // ---------- 改进后的刷新和排序 ----------
+        // ---------- 加载更多（滚动触发） ----------
+        function loadMore() {
+            if (isLoadingMore) return;
+            if (loadedCount >= filteredImages.length) return;
+            isLoadingMore = true;
+            // 模拟异步加载，避免滚动时频繁触发
+            setTimeout(() => {
+                const nextCount = Math.min(loadedCount + PAGE_SIZE, filteredImages.length);
+                loadedCount = nextCount;
+                renderGrid();
+                isLoadingMore = false;
+            }, 50);
+        }
+
+        // ---------- 滚动监听 ----------
+        function onScroll() {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            // 距离底部 200px 时触发加载
+            if (scrollTop + windowHeight >= documentHeight - 200) {
+                loadMore();
+            }
+        }
+
+        // ---------- 刷新 ----------
         function refreshGrid() {
             if (!isLoaded) {
-                // 自动加载图片
-                renderGrid(filteredImages);
-                sortNoticeBtn.textContent = '📋 正序';
+                // 首次加载，加载第一页
+                loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+                renderGrid();
+                sortBtn.textContent = '📋 正序';
+                window.addEventListener('scroll', onScroll);
                 return;
             }
-            // 已加载：只刷新显示（图片从缓存取，不会重新下载）
-            renderGrid(filteredImages);
+            // 刷新：重置加载状态，但保留排序，从第一页重新开始加载
+            loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+            renderGrid();
+            // 如果还没加载完，确保滚动监听开启
+            if (loadedCount < filteredImages.length) {
+                window.removeEventListener('scroll', onScroll);
+                window.addEventListener('scroll', onScroll);
+            }
         }
 
+        // ---------- 排序 ----------
         function toggleSort() {
             if (!isLoaded) {
-                // 先加载
-                renderGrid(filteredImages);
-                sortNoticeBtn.textContent = '📋 正序';
+                // 先加载第一页
+                loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+                renderGrid();
+                sortBtn.textContent = '📋 正序';
                 // 递归调用自身执行排序
                 toggleSort();
                 return;
             }
             sortAsc = !sortAsc;
             filteredImages.sort((a, b) => sortAsc ? a - b : b - a);
-            renderGrid(filteredImages);
+            // 重新渲染当前已加载的部分
+            renderGrid();
             const label = sortAsc ? '正序' : '倒序';
-            sortNoticeBtn.textContent = '📋 ' + label;
+            sortBtn.textContent = '📋 ' + label;
+            // 如果已全部加载，无需滚动监听
+            if (loadedCount < filteredImages.length) {
+                window.removeEventListener('scroll', onScroll);
+                window.addEventListener('scroll', onScroll);
+            }
         }
 
         // ---------- 灯箱 ----------
@@ -600,8 +633,12 @@
 
         modalAgree.addEventListener('click', function() {
             hideEntryModal();
-            renderGrid(filteredImages);
-            sortNoticeBtn.textContent = '📋 正序';
+            // 首次加载第一页
+            loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+            renderGrid();
+            sortBtn.textContent = '📋 正序';
+            // 启动滚动监听
+            window.addEventListener('scroll', onScroll);
         });
 
         modalReject.addEventListener('click', function() {
@@ -626,8 +663,8 @@
             }
         });
 
-        refreshNoticeBtn.addEventListener('click', refreshGrid);
-        sortNoticeBtn.addEventListener('click', toggleSort);
+        refreshBtn.addEventListener('click', refreshGrid);
+        sortBtn.addEventListener('click', toggleSort);
 
         closeBtn.addEventListener('click', closeLightbox);
         prevBtn.addEventListener('click', prevImage);
@@ -658,24 +695,30 @@
         // ---------- 启动 ----------
         initData();
 
+        // 背景预加载 + 弹窗
         window.addEventListener('load', function() {
             const bgImg = new Image();
             bgImg.onload = function() {
-                console.log('背景加载完成，开始分批预加载图片...');
-                preloadImagesBatch().then(() => {
-                    console.log('所有图片预加载完成');
-                });
+                console.log('背景加载完成');
+                // 预加载图片（只是触发下载，不是渲染）
+                for (let i = 1; i <= TOTAL_IMAGES; i++) {
+                    const img = new Image();
+                    img.src = getImagePath(i);
+                }
                 setTimeout(showEntryModal, 300);
             };
             bgImg.onerror = function() {
-                console.warn('背景加载失败，继续预加载');
-                preloadImagesBatch();
+                console.warn('背景加载失败，继续');
+                for (let i = 1; i <= TOTAL_IMAGES; i++) {
+                    const img = new Image();
+                    img.src = getImagePath(i);
+                }
                 setTimeout(showEntryModal, 300);
             };
             bgImg.src = './bg.png';
         });
 
-        console.log(`✅ LC图库初始化完成，共 ${TOTAL_IMAGES} 张，按钮已优化。`);
+        console.log(`✅ LC图库启动，共 ${TOTAL_IMAGES} 张，分页加载每页 ${PAGE_SIZE} 张。`);
     </script>
 </body>
 </html>
