@@ -118,10 +118,16 @@
             position: relative;
             aspect-ratio: 9 / 14;
             transition: transform 0.2s ease;
+            /* 入场动画默认启用，但刷新/排序时通过 JS 控制移除 */
             opacity: 0;
             transform: translateY(20px);
             animation: fadeInUp 0.45s ease forwards;
             will-change: transform, opacity;
+        }
+        .card.no-animation {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: translateY(0) !important;
         }
 
         .card:active { transform: scale(0.94); }
@@ -437,23 +443,17 @@
 
     <script>
         // ============================================================
-        // 配置区
+        // 配置
         // ============================================================
         const TOTAL_IMAGES = 300;
         const IMAGE_EXT = 'jpg';
-        const PAGE_SIZE = 20;           // 每次加载20张
-        // ============================================================
+        const PAGE_SIZE = 20;
 
-        function getImagePath(index) {
-            return `./${index}.${IMAGE_EXT}`;
-        }
-
-        // ---------- DOM ----------
+        // ---------- DOM 引用 ----------
         const grid = document.getElementById('imageGrid');
         const refreshBtn = document.getElementById('refreshNoticeBtn');
         const sortBtn = document.getElementById('sortNoticeBtn');
         const footerInfo = document.getElementById('footerInfo');
-        const staticNotice = document.getElementById('staticNotice');
 
         const lightbox = document.getElementById('lightbox');
         const lightboxImg = document.getElementById('lightboxImg');
@@ -470,11 +470,144 @@
         // ---------- 数据 ----------
         let allImages = [];
         let filteredImages = [];
-        let currentLightboxIndex = 0;
-        let sortAsc = true;
+        let loadedCount = 0;          // 已加载数量
         let isLoaded = false;
-        let loadedCount = 0;            // 当前已加载的数量
+        let sortAsc = true;
         let isLoadingMore = false;
+
+        // ---------- 工具函数 ----------
+        function getImagePath(index) {
+            return `./${index}.${IMAGE_EXT}`;
+        }
+
+        // ---------- 创建单个卡片DOM ----------
+        function createCardElement(num, index, withAnimation = true) {
+            const div = document.createElement('div');
+            div.className = 'card' + (withAnimation ? '' : ' no-animation');
+            div.dataset.index = num;
+            if (withAnimation) {
+                div.style.animationDelay = (index * 8) + 'ms'; // 延迟减小，更流畅
+            }
+            div.innerHTML = `
+                <img src="${getImagePath(num)}" alt="图片 ${num}" loading="lazy" onerror="this.style.display='none'">
+                <span class="index-label">#${num}</span>
+            `;
+            return div;
+        }
+
+        // ---------- 渲染指定范围的卡片（追加或全量） ----------
+        function renderRange(start, end, append = false, withAnimation = true) {
+            const fragment = document.createDocumentFragment();
+            for (let i = start; i < end; i++) {
+                const num = filteredImages[i];
+                const card = createCardElement(num, i, withAnimation);
+                fragment.appendChild(card);
+            }
+            if (append) {
+                grid.appendChild(fragment);
+            } else {
+                grid.innerHTML = '';
+                grid.appendChild(fragment);
+            }
+            grid.style.display = 'grid';
+            updateFooter();
+        }
+
+        // ---------- 加载更多（追加） ----------
+        function loadMore() {
+            if (isLoadingMore) return;
+            if (loadedCount >= filteredImages.length) return;
+            isLoadingMore = true;
+            // 延迟一点，让滚动不卡
+            setTimeout(() => {
+                const start = loadedCount;
+                const end = Math.min(loadedCount + PAGE_SIZE, filteredImages.length);
+                renderRange(start, end, true, true); // 追加，带动画
+                loadedCount = end;
+                isLoadingMore = false;
+                updateFooter();
+                if (loadedCount >= filteredImages.length) {
+                    removeScrollListener();
+                }
+            }, 30);
+        }
+
+        // ---------- 刷新 ----------
+        function refreshGrid() {
+            if (!isLoaded) {
+                // 首次加载（由弹窗触发，但这里做保护）
+                loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+                renderRange(0, loadedCount, false, true);
+                sortBtn.textContent = '📋 正序';
+                isLoaded = true;
+                addScrollListener();
+                return;
+            }
+            // 刷新：重置已加载数量，重新从第一页加载，无动画（避免闪烁）
+            loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+            renderRange(0, loadedCount, false, false); // 无动画
+            addScrollListener();
+        }
+
+        // ---------- 排序 ----------
+        function toggleSort() {
+            if (!isLoaded) {
+                // 先加载
+                loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+                renderRange(0, loadedCount, false, true);
+                sortBtn.textContent = '📋 正序';
+                isLoaded = true;
+                toggleSort(); // 递归执行排序
+                return;
+            }
+            sortAsc = !sortAsc;
+            filteredImages.sort((a, b) => sortAsc ? a - b : b - a);
+            // 重新渲染当前已加载的范围，无动画（平滑切换）
+            renderRange(0, loadedCount, false, false);
+            sortBtn.textContent = sortAsc ? '📋 正序' : '📋 倒序';
+            addScrollListener();
+        }
+
+        // ---------- 滚动监听管理 ----------
+        let scrollHandler = null;
+
+        function onScroll() {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            if (scrollTop + windowHeight >= documentHeight - 200) {
+                loadMore();
+            }
+        }
+
+        function addScrollListener() {
+            removeScrollListener();
+            if (loadedCount < filteredImages.length) {
+                scrollHandler = onScroll;
+                window.addEventListener('scroll', scrollHandler, { passive: true });
+            }
+        }
+
+        function removeScrollListener() {
+            if (scrollHandler) {
+                window.removeEventListener('scroll', scrollHandler);
+                scrollHandler = null;
+            }
+        }
+
+        // ---------- 更新底部信息 ----------
+        function updateFooter() {
+            if (!isLoaded) {
+                footerInfo.style.display = 'none';
+                return;
+            }
+            footerInfo.style.display = 'block';
+            if (loadedCount >= filteredImages.length) {
+                footerInfo.textContent = `✅ 已全部加载（共 ${filteredImages.length} 张）`;
+            } else {
+                footerInfo.textContent = `已加载 ${loadedCount}/${filteredImages.length}，继续滑动加载更多`;
+            }
+        }
 
         // ---------- 初始化数据 ----------
         function initData() {
@@ -482,121 +615,26 @@
             filteredImages = [...allImages];
         }
 
-        // ---------- 渲染当前已加载的图片 ----------
-        function renderGrid() {
-            const list = filteredImages.slice(0, loadedCount);
-            if (list.length === 0) {
-                grid.innerHTML = `<div class="empty-tip">😕 没有匹配的图片</div>`;
-                grid.style.display = 'grid';
-                footerInfo.style.display = 'block';
-                footerInfo.textContent = '没有图片可显示';
-                return;
+        // ---------- 灯箱事件 ----------
+        grid.addEventListener('click', function(e) {
+            const card = e.target.closest('.card');
+            if (!card) return;
+            const num = parseInt(card.dataset.index, 10);
+            const idx = filteredImages.indexOf(num);
+            if (idx !== -1) {
+                openLightbox(idx);
             }
-            let html = '';
-            const baseDelay = 10; // 每个卡片延迟10ms，避免首屏卡顿
-            list.forEach((num, index) => {
-                const src = getImagePath(num);
-                const delay = index * baseDelay;
-                html += `
-                    <div class="card" data-index="${num}" style="animation-delay: ${delay}ms;">
-                        <img src="${src}" alt="图片 ${num}" loading="lazy" onerror="this.style.display='none'">
-                        <span class="index-label">#${num}</span>
-                    </div>
-                `;
-            });
-            grid.innerHTML = html;
-            grid.style.display = 'grid';
-            // 更新底部信息
-            if (loadedCount >= filteredImages.length) {
-                footerInfo.textContent = `✅ 已全部加载（共 ${filteredImages.length} 张）`;
-            } else {
-                footerInfo.textContent = `已加载 ${loadedCount}/${filteredImages.length}，继续滑动加载更多`;
-            }
-            footerInfo.style.display = 'block';
-            isLoaded = true;
-            // 如果已全部加载，移除滚动监听
-            if (loadedCount >= filteredImages.length) {
-                window.removeEventListener('scroll', onScroll);
-            }
-        }
+        });
 
-        // ---------- 加载更多（滚动触发） ----------
-        function loadMore() {
-            if (isLoadingMore) return;
-            if (loadedCount >= filteredImages.length) return;
-            isLoadingMore = true;
-            // 模拟异步加载，避免滚动时频繁触发
-            setTimeout(() => {
-                const nextCount = Math.min(loadedCount + PAGE_SIZE, filteredImages.length);
-                loadedCount = nextCount;
-                renderGrid();
-                isLoadingMore = false;
-            }, 50);
-        }
-
-        // ---------- 滚动监听 ----------
-        function onScroll() {
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const windowHeight = window.innerHeight;
-            const documentHeight = document.documentElement.scrollHeight;
-            // 距离底部 200px 时触发加载
-            if (scrollTop + windowHeight >= documentHeight - 200) {
-                loadMore();
-            }
-        }
-
-        // ---------- 刷新 ----------
-        function refreshGrid() {
-            if (!isLoaded) {
-                // 首次加载，加载第一页
-                loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
-                renderGrid();
-                sortBtn.textContent = '📋 正序';
-                window.addEventListener('scroll', onScroll);
-                return;
-            }
-            // 刷新：重置加载状态，但保留排序，从第一页重新开始加载
-            loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
-            renderGrid();
-            // 如果还没加载完，确保滚动监听开启
-            if (loadedCount < filteredImages.length) {
-                window.removeEventListener('scroll', onScroll);
-                window.addEventListener('scroll', onScroll);
-            }
-        }
-
-        // ---------- 排序 ----------
-        function toggleSort() {
-            if (!isLoaded) {
-                // 先加载第一页
-                loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
-                renderGrid();
-                sortBtn.textContent = '📋 正序';
-                // 递归调用自身执行排序
-                toggleSort();
-                return;
-            }
-            sortAsc = !sortAsc;
-            filteredImages.sort((a, b) => sortAsc ? a - b : b - a);
-            // 重新渲染当前已加载的部分
-            renderGrid();
-            const label = sortAsc ? '正序' : '倒序';
-            sortBtn.textContent = '📋 ' + label;
-            // 如果已全部加载，无需滚动监听
-            if (loadedCount < filteredImages.length) {
-                window.removeEventListener('scroll', onScroll);
-                window.addEventListener('scroll', onScroll);
-            }
-        }
-
-        // ---------- 灯箱 ----------
-        function openLightbox(indexInFiltered) {
+        function openLightbox(index) {
             if (filteredImages.length === 0) return;
-            currentLightboxIndex = indexInFiltered;
+            currentLightboxIndex = index;
             updateLightbox();
             lightbox.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
+
+        let currentLightboxIndex = 0;
 
         function updateLightbox() {
             const num = filteredImages[currentLightboxIndex];
@@ -621,50 +659,6 @@
             currentLightboxIndex = (currentLightboxIndex + 1) % filteredImages.length;
             updateLightbox();
         }
-
-        // ---------- 弹窗控制 ----------
-        function showEntryModal() {
-            entryModal.classList.add('active');
-        }
-
-        function hideEntryModal() {
-            entryModal.classList.remove('active');
-        }
-
-        modalAgree.addEventListener('click', function() {
-            hideEntryModal();
-            // 首次加载第一页
-            loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
-            renderGrid();
-            sortBtn.textContent = '📋 正序';
-            // 启动滚动监听
-            window.addEventListener('scroll', onScroll);
-        });
-
-        modalReject.addEventListener('click', function() {
-            hideEntryModal();
-            exitOverlay.classList.add('active');
-            setTimeout(function() {
-                window.close();
-                setTimeout(function() {
-                    window.location.href = 'about:blank';
-                }, 500);
-            }, 800);
-        });
-
-        // ---------- 事件绑定 ----------
-        grid.addEventListener('click', function(e) {
-            const card = e.target.closest('.card');
-            if (!card) return;
-            const num = parseInt(card.dataset.index, 10);
-            const idx = filteredImages.indexOf(num);
-            if (idx !== -1) {
-                openLightbox(idx);
-            }
-        });
-
-        refreshBtn.addEventListener('click', refreshGrid);
-        sortBtn.addEventListener('click', toggleSort);
 
         closeBtn.addEventListener('click', closeLightbox);
         prevBtn.addEventListener('click', prevImage);
@@ -692,15 +686,50 @@
             if (e.key === 'Escape') closeLightbox();
         });
 
+        // ---------- 弹窗控制 ----------
+        function showEntryModal() {
+            entryModal.classList.add('active');
+        }
+
+        function hideEntryModal() {
+            entryModal.classList.remove('active');
+        }
+
+        modalAgree.addEventListener('click', function() {
+            hideEntryModal();
+            // 首次加载第一页，带动画
+            loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
+            renderRange(0, loadedCount, false, true);
+            isLoaded = true;
+            sortBtn.textContent = '📋 正序';
+            addScrollListener();
+            updateFooter();
+        });
+
+        modalReject.addEventListener('click', function() {
+            hideEntryModal();
+            exitOverlay.classList.add('active');
+            setTimeout(() => {
+                window.close();
+                setTimeout(() => {
+                    window.location.href = 'about:blank';
+                }, 500);
+            }, 800);
+        });
+
+        // ---------- 按钮绑定 ----------
+        refreshBtn.addEventListener('click', refreshGrid);
+        sortBtn.addEventListener('click', toggleSort);
+
         // ---------- 启动 ----------
         initData();
 
-        // 背景预加载 + 弹窗
         window.addEventListener('load', function() {
+            // 优先加载背景
             const bgImg = new Image();
             bgImg.onload = function() {
-                console.log('背景加载完成');
-                // 预加载图片（只是触发下载，不是渲染）
+                console.log('背景加载完成，预加载图片...');
+                // 预加载所有图片（后台缓存）
                 for (let i = 1; i <= TOTAL_IMAGES; i++) {
                     const img = new Image();
                     img.src = getImagePath(i);
