@@ -77,15 +77,15 @@
         .notice .title::before { content: '📢'; font-size: 14px; }
         .notice .actions {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             margin-top: 6px;
-            justify-content: flex-end;
+            justify-content: center;  /* 改为居中 */
         }
         .notice .actions button {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(4px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 3px 12px;
+            padding: 3px 16px;
             border-radius: 30px;
             color: #fff;
             font-size: 11px;
@@ -414,7 +414,8 @@
                 推荐图库半透明图比较稳<br>
                 上号格式:系统+区+图片编号<br>
                 例如:安卓q区+海报15号<br>
-                <span style="color: #ff4d4d;">如遇加载缓慢，请尝试刷新或切换网络。</span>
+                <span style="color: #ff4d4d;">如遇加载缓慢，请尝试刷新或切换网络。</span><br>
+                <span style="color: #ff4d4d;">217号后面的图未测试稳定性未知</span>
             </div>
             <div class="actions">
                 <button id="refreshNoticeBtn">🔄 刷新</button>
@@ -443,7 +444,7 @@
         // ============================================================
         // 配置
         // ============================================================
-        const TOTAL_IMAGES = 411;          // 改为 411
+        const TOTAL_IMAGES = 411;
         const IMAGE_EXT = 'jpg';
         const PAGE_SIZE = 20;
 
@@ -484,7 +485,7 @@
             div.className = 'card' + (withAnimation ? '' : ' no-animation');
             div.dataset.index = num;
             if (withAnimation) {
-                div.style.animationDelay = (index * 8) + 'ms'; // 延迟减小，更流畅
+                div.style.animationDelay = (index * 8) + 'ms';
             }
             div.innerHTML = `
                 <img src="${getImagePath(num)}" alt="图片 ${num}" loading="lazy" onerror="this.style.display='none'">
@@ -516,11 +517,10 @@
             if (isLoadingMore) return;
             if (loadedCount >= filteredImages.length) return;
             isLoadingMore = true;
-            // 延迟一点，让滚动不卡
             setTimeout(() => {
                 const start = loadedCount;
                 const end = Math.min(loadedCount + PAGE_SIZE, filteredImages.length);
-                renderRange(start, end, true, true); // 追加，带动画
+                renderRange(start, end, true, true);
                 loadedCount = end;
                 isLoadingMore = false;
                 updateFooter();
@@ -533,7 +533,6 @@
         // ---------- 刷新 ----------
         function refreshGrid() {
             if (!isLoaded) {
-                // 首次加载（由弹窗触发，但这里做保护）
                 loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
                 renderRange(0, loadedCount, false, true);
                 sortBtn.textContent = '📋 正序';
@@ -541,26 +540,23 @@
                 addScrollListener();
                 return;
             }
-            // 刷新：重置已加载数量，重新从第一页加载，无动画（避免闪烁）
             loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
-            renderRange(0, loadedCount, false, false); // 无动画
+            renderRange(0, loadedCount, false, false);
             addScrollListener();
         }
 
         // ---------- 排序 ----------
         function toggleSort() {
             if (!isLoaded) {
-                // 先加载
                 loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
                 renderRange(0, loadedCount, false, true);
                 sortBtn.textContent = '📋 正序';
                 isLoaded = true;
-                toggleSort(); // 递归执行排序
+                toggleSort();
                 return;
             }
             sortAsc = !sortAsc;
             filteredImages.sort((a, b) => sortAsc ? a - b : b - a);
-            // 重新渲染当前已加载的范围，无动画（平滑切换）
             renderRange(0, loadedCount, false, false);
             sortBtn.textContent = sortAsc ? '📋 正序' : '📋 倒序';
             addScrollListener();
@@ -695,7 +691,6 @@
 
         modalAgree.addEventListener('click', function() {
             hideEntryModal();
-            // 首次加载第一页，带动画
             loadedCount = Math.min(PAGE_SIZE, filteredImages.length);
             renderRange(0, loadedCount, false, true);
             isLoaded = true;
@@ -723,11 +718,9 @@
         initData();
 
         window.addEventListener('load', function() {
-            // 优先加载背景
             const bgImg = new Image();
             bgImg.onload = function() {
                 console.log('背景加载完成，预加载图片...');
-                // 预加载所有图片（后台缓存）
                 for (let i = 1; i <= TOTAL_IMAGES; i++) {
                     const img = new Image();
                     img.src = getImagePath(i);
